@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" class="brote brote-happy">
+  <defs>
+    <radialGradient id="brote-g-fav" cx="0.36" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#3cc196"/>
+      <stop offset="0.6" stop-color="#24a17e"/>
+      <stop offset="1" stop-color="#1b7f63"/>
+    </radialGradient>
+  </defs>
+  
+  <g class="brote-bob">
+    <ellipse cx="48" cy="105" rx="9.5" ry="5" fill="#1b7f63"/>
+    <ellipse cx="72" cy="105" rx="9.5" ry="5" fill="#1b7f63"/>
+    <path class="" d="M27 80 q-7 6 -4 13" fill="none" stroke="#24a17e" stroke-width="8" stroke-linecap="round"/><path class="" d="M93 80 q7 6 4 13" fill="none" stroke="#24a17e" stroke-width="8" stroke-linecap="round"/>
+    <path d="M60 33 C85 33 99 53 99 74 C99 95 83 107 60 107 C37 107 21 95 21 74 C21 53 35 33 60 33Z" fill="url(#brote-g-fav)"/>
+    <ellipse cx="60" cy="88" rx="23" ry="15" fill="#d3f2e5" opacity=".85"/>
+    <g class="brote-sprout">
+      <path d="M60 35 C59.5 29 60 25 61.5 20" fill="none" stroke="#4c9e4f" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M60.5 27 C53 14 39 14 35 21 C42 31 54 32 60.5 27Z" fill="#9ad86f"/>
+      <path d="M61.5 21 C66 8 81 5 86 11 C81 22 70 26 61.5 21Z" fill="#5fb85a"/>
+      <path d="M60 27 C52 22 45 20 39 21" fill="none" stroke="#5fb85a" stroke-width="1.4" stroke-linecap="round" opacity=".6"/>
+    </g>
+    
+    <g class="brote-eyes">
+      <ellipse cx="47" cy="68" rx="5" ry="6.5" fill="#1d2420"/>
+      <ellipse cx="73" cy="68" rx="5" ry="6.5" fill="#1d2420"/>
+      <circle cx="48.8" cy="65.4" r="1.9" fill="#fff"/>
+      <circle cx="74.8" cy="65.4" r="1.9" fill="#fff"/>
+    </g>
+    <ellipse cx="37.5" cy="80" rx="6" ry="3.6" fill="#f6a48e" opacity=".75"/>
+    <ellipse cx="82.5" cy="80" rx="6" ry="3.6" fill="#f6a48e" opacity=".75"/>
+    <path d="M52 80 Q60 88 68 80" fill="none" stroke="#1d2420" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  
+</svg>
