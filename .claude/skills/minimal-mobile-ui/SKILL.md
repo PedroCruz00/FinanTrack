@@ -14,15 +14,16 @@ pone el orden; Brote pone la calidez.
 1. **Contenido sobre contenedores.** Las secciones viven sobre el papel, separadas por espacio
    (24–32 px) y líneas de 1 px `--line`. Las únicas superficies con fondo son: hojas (sheets),
    campos, dock, y las **tarjetas de Brote** (`.coach`, `.install-card`).
-2. **Los números son el héroe.** Montos grandes en serif (`--font-num`, Instrument Serif), cifras
-   tabulares. Una pantalla = una cifra principal.
+2. **Los números son el héroe.** Montos grandes en peso 800 con `--tracking-display` y cifras
+   tabulares (no "bailan" al cambiar). Una pantalla = una cifra principal.
 3. **Un acento, color con significado.** `--accent` (jade) para acciones y valores positivos. Gastos
    en tinta. Estados (ok / warning / danger) siempre con ícono + texto.
 4. **Pulgar primero.** Dock flotante inferior con "+" al centro; acciones primarias abajo; objetivos
    táctiles ≥ 44 px; margen lateral 20 px.
 5. **Íconos lineales propios** (`components/Icon.jsx`, 24 px, trazo 1.75). Nada de emojis.
-6. **Jerarquía con tipografía.** Manrope (solo latín, autoalojada) para UI; etiquetas de sección de
-   13 px en `--ink-3`.
+6. **Una sola familia: Plus Jakarta Sans** (variable 200–800, solo latín, autoalojada en
+   `src/fonts.css`). La jerarquía sale del tamaño y el peso, nunca de otra fuente. Sin cursivas
+   (no se cargan: el navegador las sintetizaría mal).
 7. **Movimiento discreto.** 160–220 ms `cubic-bezier(.2,.8,.2,1)`. Brote se mueve (respira,
    parpadea, el brote se mece) pero nunca distrae. Todo se apaga con `prefers-reduced-motion`.
 8. **Claro y oscuro de primera clase.** Tokens en `:root`; el oscuro se define para el sistema y
@@ -61,14 +62,25 @@ pone el orden; Brote pone la calidez.
 | `--sun` / `--peach` | `#f5c451` / `#f6a48e` | igual | Destellos y mejillas de Brote (no para UI) |
 | `--chart-income` / `--chart-expense` | `#1f8a70` / `#d4683a` | `#1f9a7c` / `#d9692e` | Gráficas (validadas CVD) |
 
-Radios: 12 px campos, 20–24 px hojas y tarjetas, 999 px píldoras. Espaciado en múltiplos de 4.
+### Escala (solo estos valores; nunca px sueltos)
+
+| Tipo | Token | Uso |
+|---|---|---|
+| Tamaños | `--fs-2xs` 11 · `--fs-xs` 12 · `--fs-sm` 13 · `--fs-md` 14 · `--fs-base` 15 · `--fs-lg` 16 · `--fs-xl` 19 · `--fs-2xl` 24 · `--fs-3xl` 28 · `--fs-4xl` 32 · `--fs-5xl` 40 | Texto |
+| Cifras | `--fs-display-sm` · `--fs-display` · `--fs-display-lg` (clamp) | Monto secundario · cifra principal · monto que se escribe |
+| Pesos | 500 texto · 600 etiquetas y filas · 700 títulos · 800 cifras y marca | |
+| Radios | `--r-xs` 8 · `--r-sm` 12 · `--r-md` 16 · `--r-lg` 24 · `--r-pill` | Campos · mosaicos · tarjetas y hojas · botones |
+| Controles | `--control-sm` 36 · `--control` 44 · `--control-lg` 52 | Chips · botones e inputs · acción principal |
+| Listas | `--row-y` 14 · `--lead` 44 | Relleno de fila · ícono circular inicial (en todas las listas) |
+
+Espaciado en múltiplos de 4. Un % siempre va pegado a su número con espacio no separable.
 
 ## Patrones
 
 - **Tarjeta de Brote** (`CoachCard`): Brote 84 px + título 16 px + texto + CTA píldora tinta.
   El fondo cambia con el ánimo (mint, warn-soft, danger-soft, sheet).
-- **Hero de cifra**: etiqueta 13 px → monto serif 52–64 px → ingresos/gastos con flechas.
-- **Fila de lista**: ícono en círculo de 42 px · título / meta (la fecha primero) · monto.
+- **Hero de cifra**: etiqueta `--fs-sm` → monto `--fs-display` peso 800 → ingresos/gastos con flechas.
+- **Fila de lista** (movimientos, ajustes, ranking…): ícono en círculo `--lead` · título / meta (la fecha primero) · valor o chevron. Meta en máximo 2 líneas cortas.
 - **Pestañas de texto**, **bottom sheet**, **anillo de progreso**, **formulario de movimiento**
   (tipo → monto gigante → grilla de categorías → campos con línea → facturas → barra fija).
 

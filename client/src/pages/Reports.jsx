@@ -24,12 +24,12 @@ function chartOptions(theme) {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: 'index', intersect: false },
-    font: { family: 'Manrope Variable' },
+    font: { family: 'Plus Jakarta Sans Variable' },
     plugins: {
       legend: {
         position: 'top',
         align: 'start',
-        labels: { color: theme.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 8, boxHeight: 8, padding: 16, font: { family: 'Manrope Variable', size: 12 } },
+        labels: { color: theme.text, usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 8, boxHeight: 8, padding: 16, font: { family: 'Plus Jakarta Sans Variable', size: 12 } },
       },
       tooltip: {
         backgroundColor: theme.ink,
@@ -43,12 +43,12 @@ function chartOptions(theme) {
       },
     },
     scales: {
-      x: { grid: { display: false }, border: { color: theme.line }, ticks: { color: theme.text, maxRotation: 0, autoSkip: false, font: { family: 'Manrope Variable', size: 11 } } },
+      x: { grid: { display: false }, border: { color: theme.line }, ticks: { color: theme.text, maxRotation: 0, autoSkip: false, font: { family: 'Plus Jakarta Sans Variable', size: 11 } } },
       y: {
         beginAtZero: true,
         grid: { color: theme.line },
         border: { display: false },
-        ticks: { color: theme.text, maxTicksLimit: 5, font: { family: 'Manrope Variable', size: 11 }, callback: (v) => `$${compact.format(v)}` },
+        ticks: { color: theme.text, maxTicksLimit: 5, font: { family: 'Plus Jakarta Sans Variable', size: 11 }, callback: (v) => `$${compact.format(v)}` },
       },
     },
   };
@@ -202,9 +202,9 @@ export default function Reports() {
         <p className="hero-label">{saved >= 0 ? 'Ahorraste' : 'Gastaste de más'}</p>
         <p className={`hero-amount ${saved < 0 ? 'negative' : ''}`}>{money(Math.abs(saved))}</p>
         <p className="hero-note">
-          {cur.income > 0 && saved >= 0 && `${Math.round((saved / cur.income) * 100)} % de tus ingresos. `}
+          {cur.income > 0 && saved >= 0 && `${Math.round((saved / cur.income) * 100)} % de tus ingresos. `}
           {expenseChange !== null &&
-            `Gastos ${expenseChange >= 0 ? 'subieron' : 'bajaron'} ${Math.abs(expenseChange)} % frente a ${formatMonthLong(prevMonth).split(' ')[0]}.`}
+            `Gastos ${expenseChange >= 0 ? 'subieron' : 'bajaron'} ${Math.abs(expenseChange)} % frente a ${formatMonthLong(prevMonth).split(' ')[0]}.`}
         </p>
         <div className="hero-split">
           <span>
@@ -257,8 +257,8 @@ export default function Reports() {
                       <span className="hbar-fill expense" style={{ width: `${(r.amount / maxCat) * 100}%` }} />
                     </span>
                     <small>
-                      {Math.round(r.share * 100)} % del gasto
-                      {delta !== null && ` · ${delta >= 0 ? '+' : '−'}${Math.abs(delta)} % vs. mes anterior`}
+                      {Math.round(r.share * 100)} % del gasto
+                      {delta !== null && ` · ${delta >= 0 ? '+' : '−'}${Math.abs(delta)} % vs. mes anterior`}
                     </small>
                   </span>
                 </li>

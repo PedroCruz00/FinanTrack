@@ -38,7 +38,7 @@ export function spentIn(budget, transactions, range) {
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
-/** level: 'ok' | 'warning' (≥ % de alerta) | 'exceeded' (≥ 100 %) */
+/** level: 'ok' | 'warning' (≥ % de alerta) | 'exceeded' (≥ 100 %) */
 export function budgetStatus(budget, transactions, ref = new Date()) {
   const range = periodRange(budget.period, ref);
   const spent = spentIn(budget, transactions, range);
@@ -70,7 +70,7 @@ let checking = false;
 
 /**
  * Revisa los presupuestos y avisa una sola vez por umbral y período.
- * Funciona 100 % en local, sin servidor (requisito del documento).
+ * Funciona 100 % en local, sin servidor (requisito del documento).
  */
 export async function checkBudgetAlerts() {
   if (checking) return;
@@ -89,8 +89,8 @@ export async function checkBudgetAlerts() {
       const s = budgetStatus(b, transactions);
       const name = budgetName(b, byId);
       const thresholds = [
-        [100, `Presupuesto superado: ${name}`, `Llevas ${money(s.spent)} de ${money(b.amountLimit)} (${Math.round(s.pct)} %).`],
-        [b.alertPercent, `Presupuesto al ${b.alertPercent} %: ${name}`, `Te quedan ${money(s.remaining)} en este período.`],
+        [100, `Presupuesto superado: ${name}`, `Llevas ${money(s.spent)} de ${money(b.amountLimit)} (${Math.round(s.pct)} %).`],
+        [b.alertPercent, `Presupuesto al ${b.alertPercent} %: ${name}`, `Te quedan ${money(s.remaining)} en este período.`],
       ];
       for (const [threshold, title, body] of thresholds) {
         const key = `${b.id}:${s.range.key}:${threshold}`;
@@ -98,10 +98,10 @@ export async function checkBudgetAlerts() {
           fired.add(key);
           changed = true;
           notify(title, body, threshold >= 100 ? 'error' : 'warning');
-          break; // si ya pasó el 100 %, no se avisa además el 80 %
+          break; // si ya pasó el 100 %, no se avisa además el 80 %
         }
       }
-      // Marcar el umbral inferior como avisado si ya se superó el 100 %
+      // Marcar el umbral inferior como avisado si ya se superó el 100 %
       if (s.pct >= 100) fired.add(`${b.id}:${s.range.key}:${b.alertPercent}`);
     }
     if (changed) await setMeta('firedAlerts', [...fired].slice(-500));

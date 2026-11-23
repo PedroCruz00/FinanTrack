@@ -5,9 +5,10 @@ import { db } from '../lib/db.js';
 import { useCategories } from '../lib/hooks.js';
 import { addReceipts, deleteReceipt, deleteTransaction, saveTransaction } from '../lib/repo.js';
 import { toast } from '../lib/events.js';
-import { groupDigits, PAYMENT_METHODS, toDateKey } from '../lib/util.js';
+import { amountWidth, groupDigits, PAYMENT_METHODS, toDateKey } from '../lib/util.js';
 import { haptic } from '../lib/pwa.js';
 import ReceiptImage from '../components/ReceiptImage.jsx';
+import CameraCapture, { cameraSupported } from '../components/CameraCapture.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import Icon, { CategoryIcon } from '../components/Icon.jsx';
 
@@ -37,6 +38,7 @@ export default function TransactionForm() {
   const [busy, setBusy] = useState(false);
   const [viewer, setViewer] = useState(null);
   const loaded = useRef(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const cameraInput = useRef();
   const galleryInput = useRef();
 
@@ -95,8 +97,19 @@ export default function TransactionForm() {
   const isExpense = form.type === 'expense';
 
   async function onPickFiles(e) {
-    const files = [...e.target.files].filter((f) => f.type.startsWith('image/'));
+    const files = [...e.target.files];
     e.target.value = '';
+    await handleFiles(files);
+  }
+
+  // Cámara propia si el navegador la permite (pide el permiso); si no, la cámara del sistema
+  function openCamera() {
+    if (cameraSupported()) setCameraOpen(true);
+    else cameraInput.current.click();
+  }
+
+  async function handleFiles(input) {
+    const files = input.filter((f) => f.type.startsWith('image/'));
     if (!files.length) return;
     if (isNew) {
       setNewFiles((prev) => [...prev, ...files]);
@@ -173,7 +186,7 @@ export default function TransactionForm() {
           value={groupDigits(form.amount)}
           onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/\D/g, '').slice(0, 12) })}
           autoFocus={isNew}
-          style={{ width: `${Math.max(1, groupDigits(form.amount).length || 1)}ch` }}
+          style={{ width: amountWidth(groupDigits(form.amount) || '0') }}
         />
       </label>
       {existing && (
@@ -267,7 +280,7 @@ export default function TransactionForm() {
               </button>
             </figure>
           ))}
-          <button type="button" className="receipt-add" onClick={() => cameraInput.current.click()} disabled={busy}>
+          <button type="button" className="receipt-add" onClick={openCamera} disabled={busy}>
             <Icon name="camera" size={22} />
             <span>Cámara</span>
           </button>
@@ -286,6 +299,20 @@ export default function TransactionForm() {
           {busy ? 'Guardando…' : isNew ? `Guardar ${isExpense ? 'gasto' : 'ingreso'}` : 'Guardar cambios'}
         </button>
       </div>
+
+      {cameraOpen && (
+        <CameraCapture
+          onClose={() => setCameraOpen(false)}
+          onCapture={(file) => {
+            setCameraOpen(false);
+            handleFiles([file]);
+          }}
+          onGallery={() => {
+            setCameraOpen(false);
+            galleryInput.current.click();
+          }}
+        />
+      )}
 
       {viewer && (
         <div className="viewer" role="dialog" aria-label="Factura" onClick={() => setViewer(null)}>

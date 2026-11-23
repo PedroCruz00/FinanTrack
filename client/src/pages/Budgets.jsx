@@ -4,7 +4,7 @@ import { budgetName, budgetStatus, PERIOD_LABELS } from '../lib/budgets.js';
 import { deleteBudget, saveBudget } from '../lib/repo.js';
 import { notificationsSupported, requestNotificationPermission } from '../lib/notify.js';
 import { toast } from '../lib/events.js';
-import { groupDigits, money } from '../lib/util.js';
+import { amountWidth, groupDigits, money } from '../lib/util.js';
 import BudgetRow from '../components/BudgetRow.jsx';
 import Sheet from '../components/Sheet.jsx';
 import Icon, { CategoryIcon } from '../components/Icon.jsx';
@@ -118,7 +118,7 @@ export default function Budgets() {
               placeholder="0"
               value={groupDigits(form.amountLimit)}
               onChange={(e) => setForm({ ...form, amountLimit: e.target.value.replace(/\D/g, '').slice(0, 12) })}
-              style={{ width: `${Math.max(1, groupDigits(form.amountLimit).length || 1)}ch` }}
+              style={{ width: amountWidth(groupDigits(form.amountLimit) || '0') }}
               autoFocus
             />
           </label>
@@ -164,7 +164,7 @@ export default function Budgets() {
 
           <label className="block">
             <span className="block-label">
-              Avisarme al <strong>{form.alertPercent} %</strong>
+              Avisarme al <strong>{form.alertPercent} %</strong>
             </span>
             <input
               type="range"

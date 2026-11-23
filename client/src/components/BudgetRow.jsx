@@ -44,15 +44,19 @@ export default function BudgetRow({ name, budget, status, detailed = false, onCl
         <span className="budget-name">{name}</span>
         <span className="budget-meta">
           {status.remaining >= 0 ? `Quedan ${money(status.remaining)}` : `Excedido por ${money(-status.remaining)}`}
-          {detailed && ` · ${money(status.spent)} de ${money(budget.amountLimit)} · ${PERIOD_LABELS[budget.period].toLowerCase()} · aviso al ${budget.alertPercent} %`}
         </span>
+        {detailed && (
+          <span className="budget-meta">
+            {money(status.spent)} de {money(budget.amountLimit)} · {PERIOD_LABELS[budget.period].toLowerCase()}
+          </span>
+        )}
         {(detailed || status.level !== 'ok') && (
           <span className={`level-chip level-${status.level}`}>
             <Icon name={icon} size={12} /> {label}
           </span>
         )}
       </span>
-      <span className="budget-pct" aria-label={`${pct} % usado`}>
+      <span className="budget-pct" aria-label={`${pct} % usado`}>
         {pct}
         <small>%</small>
       </span>

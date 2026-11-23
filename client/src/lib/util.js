@@ -57,3 +57,6 @@ export const formatMonthLong = (ym) => monthLongFmt.format(parseDateKey(`${ym}-0
 
 /** Formatea dígitos mientras se escribe: "120000" -> "120.000". */
 export const groupDigits = (digits) => (digits ? Number(digits).toLocaleString('es-CO') : '');
+
+/** Ancho exacto del campo de monto (los puntos ocupan menos que un dígito). */
+export const amountWidth = (text) => `${Math.max(1, (text.match(/\d/g) ?? []).length + (text.match(/\D/g) ?? []).length * 0.42 + 0.15)}ch`;

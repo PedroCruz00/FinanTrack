@@ -4,8 +4,6 @@ import { createRoot } from 'react-dom/client';
 import { applyTheme } from './lib/pwa.js';
 import App from './App.jsx';
 import './fonts.css';
-import '@fontsource/instrument-serif/latin-400.css';
-import '@fontsource/instrument-serif/latin-400-italic.css';
 import './styles.css';
 
 applyTheme();

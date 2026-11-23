@@ -59,7 +59,7 @@ export function coachMessage({ transactions, budgets, byId, online, outbox }) {
     return {
       mood: 'worried',
       title: `Ojo con ${budgetName(warning.b, byId).toLowerCase()}`,
-      text: `Vas al ${Math.round(warning.s.pct)} % y ${left === 0 ? 'el período termina hoy' : `quedan ${left} día${left > 1 ? 's' : ''}`}. Te quedan ${money(warning.s.remaining)}.`,
+      text: `Vas al ${Math.round(warning.s.pct)} % y ${left === 0 ? 'el período termina hoy' : `quedan ${left} día${left > 1 ? 's' : ''}`}. Te quedan ${money(warning.s.remaining)}.`,
       to: '/budgets',
       cta: 'Ver',
     };
@@ -84,7 +84,7 @@ export function coachMessage({ transactions, budgets, byId, online, outbox }) {
   }
   const rate = income > 0 ? Math.round(((income - expense) / income) * 100) : null;
   if (rate !== null && rate >= 20) {
-    return { mood: 'celebrate', title: '¡Vas muy bien!', text: `Este mes llevas ahorrado el ${rate} % de lo que ingresaste.` };
+    return { mood: 'celebrate', title: '¡Vas muy bien!', text: `Este mes llevas ahorrado el ${rate} % de lo que ingresaste.` };
   }
 
   const today = toDateKey();

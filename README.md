@@ -145,7 +145,7 @@ Abre en el teléfono la dirección `https://…trycloudflare.com` que imprime el
 
 **Brote** es la mascota: una semilla que germina, el ahorro que crece. Es un SVG propio con 7 estados de ánimo (saluda, contento, celebra, piensa, preocupado, triste, duerme) y comenta tu situación en la pantalla de inicio: celebra si ahorras, se preocupa cerca de un límite y duerme cuando no hay conexión. Los íconos de la app se generan a partir de él (`npm --prefix client run icons`).
 
-El sistema visual **«Libreta»** usa papel cálido, tinta oscura, cifras en serif (Instrument Serif), interfaz en Manrope y un único acento jade. Las fuentes van autoalojadas y hay tema claro, oscuro o del sistema.
+El sistema visual **«Libreta»** usa papel cálido, tinta oscura, una sola tipografía pensada para móvil (Plus Jakarta Sans, con cifras tabulares), una escala cerrada de tamaños, radios y alturas, y un único acento jade. Las fuentes van autoalojadas y hay tema claro, oscuro o del sistema.
 Las reglas están en [.claude/skills/minimal-mobile-ui/SKILL.md](.claude/skills/minimal-mobile-ui/SKILL.md).
 
 ## Capacidades PWA
