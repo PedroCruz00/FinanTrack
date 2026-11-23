@@ -7,11 +7,11 @@ import { z } from 'zod';
 import { pool, withTransaction } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 import { findProcessed, recordProcessed } from './sync.js';
+import { uploadPath } from '../uploads.js';
 
 const router = Router();
 router.use(requireAuth);
 
-const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? 'uploads');
 const MAX_BYTES = 5 * 1024 * 1024;
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_BYTES, files: 1 } });
@@ -70,7 +70,7 @@ router.post('/', upload.single('file'), async (req, res) => {
   if (tx.user_id !== userId) return res.status(403).json({ status: 'error', error: 'Movimiento de otro usuario' });
 
   const relPath = path.join(userId, `${f.id}.${kind.ext}`);
-  const absPath = path.join(UPLOAD_DIR, relPath);
+  const absPath = uploadPath(relPath);
   let wroteFile = false;
 
   try {
@@ -117,7 +117,7 @@ router.get('/:id/file', async (req, res) => {
   if (!rows.length) return res.status(404).json({ error: 'Factura no encontrada' });
   res.set('Cache-Control', 'private, max-age=31536000, immutable');
   res.type(rows[0].mime_type);
-  res.sendFile(path.join(UPLOAD_DIR, rows[0].file_path));
+  res.sendFile(uploadPath(rows[0].file_path));
 });
 
 export default router;

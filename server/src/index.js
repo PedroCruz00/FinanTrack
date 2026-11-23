@@ -8,7 +8,7 @@ import authRoutes from './routes/auth.js';
 import syncRoutes from './routes/sync.js';
 import receiptRoutes from './routes/receipts.js';
 import pushRoutes from './routes/push.js';
-import { pushEnabled, startWeeklyScheduler } from './push.js';
+import { pushEnabled, startWeeklyScheduler, TIMEZONE } from './push.js';
 
 if (!process.env.JWT_SECRET) {
   console.error('Falta JWT_SECRET en el archivo .env');
@@ -16,6 +16,8 @@ if (!process.env.JWT_SECRET) {
 }
 
 const app = express();
+// El cliente llega a través del proxy de Vite (y del túnel en el celular): la IP real viene en X-Forwarded-For.
+app.set('trust proxy', 'loopback');
 app.use(helmet());
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:5173' }));
 app.use(express.json({ limit: '1mb' }));
@@ -47,6 +49,6 @@ app.use((err, _req, res, _next) => {
 const port = Number(process.env.PORT ?? 4000);
 app.listen(port, () => {
   console.log(`API de FinanTrack en http://localhost:${port}`);
-  console.log(pushEnabled ? 'Web Push activo (resumen semanal: lunes 8:00)' : 'Web Push desactivado: faltan claves VAPID en .env');
+  console.log(pushEnabled ? `Web Push activo (resumen semanal: lunes 8:00, ${TIMEZONE})` : 'Web Push desactivado: faltan claves VAPID en .env');
   startWeeklyScheduler();
 });

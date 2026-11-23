@@ -4,9 +4,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 
 const BASE = process.env.API_URL ?? 'http://localhost:4000/api';
+const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR ?? 'uploads');
 let token;
+let userId;
 
 async function call(path, { method = 'GET', json, form } = {}) {
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -55,6 +59,7 @@ test('registro y login', async () => {
   const login = await call('/auth/login', { method: 'POST', json: { email, password: 'secreta123' } });
   assert.equal(login.status, 200);
   token = login.body.token;
+  userId = login.body.user.id;
   const bad = await call('/auth/login', { method: 'POST', json: { email, password: 'otra' } });
   assert.equal(bad.status, 401);
 });
@@ -122,6 +127,7 @@ test('factura: subida idempotente, descarga y rechazo de archivos que no son ima
   const file = await call(`/receipts/${receiptId}/file`);
   assert.equal(file.status, 200);
   assert.equal(Buffer.from(file.body).length, png.length);
+  assert.ok(existsSync(path.join(UPLOAD_DIR, userId, `${receiptId}.png`)));
 
   const fake = new FormData();
   fake.append('opId', randomUUID());
@@ -159,6 +165,7 @@ test('eliminar un movimiento elimina sus facturas y una edición vieja no lo rev
   assert.equal(pull.body.transactions.find((t) => t.id === txId).deleted, true);
   assert.equal(pull.body.receipts.find((r) => r.id === receiptId).deleted, true);
   assert.equal((await call(`/receipts/${receiptId}/file`)).status, 404);
+  assert.equal(existsSync(path.join(UPLOAD_DIR, userId, `${receiptId}.png`)), false);
 });
 
 test('presupuestos: crear y validar categoría de gasto', async () => {
@@ -217,4 +224,63 @@ test('web push: clave pública, validación, suscripción y limpieza de suscripc
   assert.equal(sent.status, 200);
   assert.equal(sent.body.sent, 0);
   assert.equal((await call('/push/unsubscribe', { method: 'POST', json: { endpoint: sub.endpoint } })).status, 200);
+});
+
+test('límite de intentos: tras 10 contraseñas incorrectas el login responde 429', async () => {
+  const email = `fuerza-${Date.now()}@example.com`;
+  const statuses = [];
+  for (let i = 0; i < 11; i++) {
+    statuses.push((await call('/auth/login', { method: 'POST', json: { email, password: `intento-${i}` } })).status);
+  }
+  assert.deepEqual(statuses.slice(0, 10), Array(10).fill(401));
+  assert.equal(statuses[10], 429);
+});
+
+test('cambiar contraseña: exige la actual y la nueva queda activa', async () => {
+  const email = `clave-${Date.now()}@example.com`;
+  const reg = await call('/auth/register', { method: 'POST', json: { name: 'Clave', email, password: 'secreta123' } });
+  const previous = token;
+  token = reg.body.token;
+  try {
+    const wrong = await call('/auth/password', { method: 'PUT', json: { currentPassword: 'otra-clave', newPassword: 'nueva-clave-1' } });
+    assert.equal(wrong.status, 403);
+    const short = await call('/auth/password', { method: 'PUT', json: { currentPassword: 'secreta123', newPassword: 'corta' } });
+    assert.equal(short.status, 400);
+    const ok = await call('/auth/password', { method: 'PUT', json: { currentPassword: 'secreta123', newPassword: 'nueva-clave-1' } });
+    assert.equal(ok.status, 200);
+    assert.equal((await call('/auth/login', { method: 'POST', json: { email, password: 'secreta123' } })).status, 401);
+    assert.equal((await call('/auth/login', { method: 'POST', json: { email, password: 'nueva-clave-1' } })).status, 200);
+  } finally {
+    token = previous;
+  }
+});
+
+test('eliminar cuenta: borra los datos y las facturas, y la sesión deja de servir', async () => {
+  const email = `baja-${Date.now()}@example.com`;
+  const reg = await call('/auth/register', { method: 'POST', json: { name: 'Baja', email, password: 'secreta123' } });
+  const previous = token;
+  token = reg.body.token;
+  try {
+    const tx = randomUUID();
+    await call('/sync/push', { method: 'POST', json: { operations: [op('transaction', 'upsert', tx, txPayload)] } });
+    const f = new FormData();
+    f.append('opId', randomUUID());
+    f.append('id', randomUUID());
+    f.append('transactionId', tx);
+    f.append('capturedAt', new Date().toISOString());
+    f.append('updatedAt', new Date().toISOString());
+    f.append('file', new Blob([tinyPng()]), 'f.png');
+    assert.equal((await call('/receipts', { method: 'POST', form: f })).status, 201);
+    const folder = path.join(UPLOAD_DIR, reg.body.user.id);
+    assert.ok(existsSync(folder));
+
+    assert.equal((await call('/auth/account', { method: 'DELETE', json: { password: 'incorrecta' } })).status, 403);
+    assert.equal((await call('/auth/account', { method: 'DELETE', json: { password: 'secreta123' } })).status, 200);
+    assert.equal(existsSync(folder), false);
+    const late = await call('/sync/push', { method: 'POST', json: { operations: [op('transaction', 'upsert', randomUUID(), txPayload)] } });
+    assert.equal(late.status, 401);
+    assert.equal((await call('/auth/login', { method: 'POST', json: { email, password: 'secreta123' } })).status, 401);
+  } finally {
+    token = previous;
+  }
 });

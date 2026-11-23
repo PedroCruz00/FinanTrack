@@ -23,6 +23,7 @@ import {
 import Brote from '../components/Brote.jsx';
 import Icon from '../components/Icon.jsx';
 import InstallCard from '../components/InstallCard.jsx';
+import Sheet from '../components/Sheet.jsx';
 
 const THEMES = [
   ['system', 'monitor', 'Sistema'],
@@ -61,6 +62,131 @@ function Toggle({ checked, onChange, disabled, label }) {
   );
 }
 
+function PasswordSheet({ open, onClose }) {
+  const [form, setForm] = useState({ current: '', next: '', repeat: '' });
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+
+  const close = () => {
+    setForm({ current: '', next: '', repeat: '' });
+    setError(null);
+    onClose();
+  };
+
+  async function submit(e) {
+    e.preventDefault();
+    if (form.next !== form.repeat) return setError('Las contraseñas nuevas no coinciden');
+    setBusy(true);
+    setError(null);
+    try {
+      await api('/auth/password', { method: 'PUT', json: { currentPassword: form.current, newPassword: form.next } });
+      toast('Contraseña actualizada', 'success');
+      close();
+    } catch (err) {
+      setError(err.status === 0 ? 'Necesitas conexión para cambiar la contraseña' : err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet open={open} title="Cambiar contraseña" onClose={close}>
+      <form className="sheet-form" onSubmit={submit}>
+        <div>
+          <label className="line-field">
+            <span>Contraseña actual</span>
+            <input type="password" value={form.current} onChange={set('current')} required autoComplete="current-password" autoFocus />
+          </label>
+          <label className="line-field">
+            <span>
+              Nueva contraseña<small> · mínimo 8 caracteres</small>
+            </span>
+            <input type="password" value={form.next} onChange={set('next')} required minLength={8} autoComplete="new-password" />
+          </label>
+          <label className="line-field">
+            <span>Repite la nueva contraseña</span>
+            <input type="password" value={form.repeat} onChange={set('repeat')} required minLength={8} autoComplete="new-password" />
+          </label>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="sheet-actions">
+          <button className="btn btn-primary btn-lg grow" disabled={busy}>
+            {busy ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
+function DeleteAccountSheet({ open, onClose, onDeleted }) {
+  const { deleteAccount } = useAuth();
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const close = () => {
+    setPassword('');
+    setError(null);
+    onClose();
+  };
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await deleteAccount(password);
+      onDeleted();
+    } catch (err) {
+      setError(err.status === 0 ? 'Necesitas conexión para eliminar la cuenta' : err.message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet open={open} title="Eliminar cuenta" onClose={close}>
+      <form className="sheet-form" onSubmit={submit}>
+        <p className="muted">
+          Se borrarán para siempre tus movimientos, presupuestos y fotos de facturas, en el servidor y en este dispositivo.
+          No se puede deshacer.
+        </p>
+        <div>
+          <label className="line-field">
+            <span>Escribe tu contraseña para confirmar</span>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              autoFocus
+            />
+          </label>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="sheet-actions">
+          <button type="button" className="btn btn-ghost grow" onClick={close}>
+            Cancelar
+          </button>
+          <button className="btn btn-lg grow danger" disabled={busy || !password}>
+            <Icon name="trash" size={18} /> {busy ? 'Eliminando…' : 'Eliminar'}
+          </button>
+        </div>
+      </form>
+    </Sheet>
+  );
+}
+
 export default function Settings() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -71,6 +197,7 @@ export default function Settings() {
   const [periodic, setPeriodic] = useState('unsupported');
   const [storage, setStorage] = useState(null);
   const [busy, setBusy] = useState('');
+  const [sheet, setSheet] = useState(null);
 
   useEffect(() => {
     getPushSubscription().then((s) => setPush(!!s)).catch(() => {});
@@ -279,6 +406,26 @@ export default function Settings() {
       </details>
 
       <section className="section">
+        <h2 className="section-title">Cuenta</h2>
+        <button className="setting-row" onClick={() => setSheet('password')}>
+          <Icon name="shield" />
+          <span className="setting-main">
+            <span>Cambiar contraseña</span>
+            <small>Necesitas la contraseña actual</small>
+          </span>
+          <Icon name="chevronRight" size={18} />
+        </button>
+        <button className="setting-row" onClick={() => setSheet('delete')}>
+          <Icon name="trash" />
+          <span className="setting-main">
+            <span className="danger">Eliminar cuenta</span>
+            <small>Borra todos tus datos del servidor y de este dispositivo</small>
+          </span>
+          <Icon name="chevronRight" size={18} />
+        </button>
+      </section>
+
+      <section className="section">
         <button
           className="btn btn-block"
           onClick={async () => {
@@ -291,6 +438,16 @@ export default function Settings() {
           FinanTrack {__APP_VERSION__} · compilada el {new Date(__BUILD_DATE__).toLocaleDateString('es-CO')}
         </p>
       </section>
+
+      <PasswordSheet open={sheet === 'password'} onClose={() => setSheet(null)} />
+      <DeleteAccountSheet
+        open={sheet === 'delete'}
+        onClose={() => setSheet(null)}
+        onDeleted={() => {
+          toast('Tu cuenta fue eliminada', 'info');
+          navigate('/login');
+        }}
+      />
     </div>
   );
 }

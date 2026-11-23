@@ -44,26 +44,58 @@ export async function sendToUser(userId, payload) {
   return { sent, removed };
 }
 
+export const TIMEZONE = process.env.APP_TIMEZONE || 'America/Bogota';
+
+/** Fecha y hora de pared en la zona de la app, sin depender de la zona del servidor. */
+export function zonedNow(date = new Date(), timeZone = TIMEZONE) {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+      weekday: 'short',
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  );
+  const weekdays = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    date: `${parts.year}-${parts.month}-${parts.day}`,
+    weekday: weekdays[parts.weekday],
+    hour: Number(parts.hour),
+  };
+}
+
+function daysBefore(isoDate, days) {
+  const d = new Date(`${isoDate}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
 const money = (n) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n || 0);
 
 /** Resumen de los últimos 7 días calculado en la base de datos. */
 export async function weeklySummary(userId) {
+  const since = daysBefore(zonedNow().date, 7);
   const [[totals]] = await pool.query(
     `SELECT
        COALESCE(SUM(CASE WHEN type = 'income'  THEN amount END), 0) AS income,
        COALESCE(SUM(CASE WHEN type = 'expense' THEN amount END), 0) AS expense,
        COUNT(*) AS count
      FROM transactions
-     WHERE user_id = ? AND deleted = 0 AND date >= CURDATE() - INTERVAL 7 DAY`,
-    [userId],
+     WHERE user_id = ? AND deleted = 0 AND date >= ?`,
+    [userId, since],
   );
   const [[top]] = await pool.query(
     `SELECT c.name, SUM(t.amount) AS total
      FROM transactions t JOIN categories c ON c.id = t.category_id
-     WHERE t.user_id = ? AND t.deleted = 0 AND t.type = 'expense' AND t.date >= CURDATE() - INTERVAL 7 DAY
+     WHERE t.user_id = ? AND t.deleted = 0 AND t.type = 'expense' AND t.date >= ?
      GROUP BY c.name ORDER BY total DESC LIMIT 1`,
-    [userId],
+    [userId, since],
   );
 
   if (!totals.count) {
@@ -85,15 +117,14 @@ export async function weeklySummary(userId) {
   };
 }
 
-/** Programa el resumen semanal: lunes a las 8:00 (hora del servidor). */
+/** Programa el resumen semanal: lunes a las 8:00 en la zona de APP_TIMEZONE. */
 export function startWeeklyScheduler() {
   if (!pushEnabled) return;
   let lastRun = null;
   const tick = async () => {
-    const now = new Date();
-    const key = now.toISOString().slice(0, 10);
-    if (now.getDay() !== 1 || now.getHours() !== 8 || lastRun === key) return;
-    lastRun = key;
+    const now = zonedNow();
+    if (now.weekday !== 1 || now.hour !== 8 || lastRun === now.date) return;
+    lastRun = now.date;
     const [users] = await pool.query('SELECT DISTINCT user_id FROM push_subscriptions');
     for (const { user_id: userId } of users) {
       await sendToUser(userId, await weeklySummary(userId)).catch((e) => console.warn(e.message));

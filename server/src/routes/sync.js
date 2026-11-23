@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { pool, withTransaction } from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
+import { removeUploads } from '../uploads.js';
 
 /**
  * Sincronización
@@ -119,10 +120,19 @@ async function upsertBudget(conn, userId, op) {
 
 const TABLES = { transaction: 'transactions', budget: 'budgets', receipt: 'receipts' };
 
-async function softDelete(conn, userId, op) {
+/** Rutas de las facturas activas que quedan huérfanas al eliminar este registro. */
+async function receiptFilesOf(conn, op) {
+  if (op.entity === 'budget') return [];
+  const column = op.entity === 'transaction' ? 'transaction_id' : 'id';
+  const [rows] = await conn.query(`SELECT file_path FROM receipts WHERE ${column} = ? AND deleted = 0`, [op.entityId]);
+  return rows.map((r) => r.file_path);
+}
+
+async function softDelete(conn, userId, op, orphanFiles) {
   const table = TABLES[op.entity];
   const existing = await findOwned(conn, table, op.entityId, userId);
   if (!existing || existing.deleted) return 'ok';
+  orphanFiles.push(...(await receiptFilesOf(conn, op)));
   await conn.query(`UPDATE ${table} SET deleted = 1, server_updated_at = NOW(3) WHERE id = ?`, [op.entityId]);
   if (op.entity === 'transaction') {
     await conn.query('UPDATE receipts SET deleted = 1, server_updated_at = NOW(3) WHERE transaction_id = ? AND deleted = 0', [
@@ -148,20 +158,24 @@ export async function recordProcessed(conn, userId, op, result) {
 }
 
 async function applyOperation(userId, op) {
-  return withTransaction(async (conn) => {
+  const orphanFiles = [];
+  const result = await withTransaction(async (conn) => {
     const previous = await findProcessed(conn, op.opId, userId);
     if (previous) return { ...previous, duplicate: true };
 
     let status;
-    if (op.action === 'delete') status = await softDelete(conn, userId, op);
+    if (op.action === 'delete') status = await softDelete(conn, userId, op, orphanFiles);
     else if (op.entity === 'transaction') status = await upsertTransaction(conn, userId, op);
     else if (op.entity === 'budget') status = await upsertBudget(conn, userId, op);
     else throw new OpError('Las facturas se suben con POST /api/receipts');
 
-    const result = { opId: op.opId, status };
-    await recordProcessed(conn, userId, op, result);
-    return result;
+    const out = { opId: op.opId, status };
+    await recordProcessed(conn, userId, op, out);
+    return out;
   });
+  // Los archivos se borran solo después del COMMIT: si la transacción falla, siguen en su sitio.
+  if (orphanFiles.length) await removeUploads(orphanFiles);
+  return result;
 }
 
 router.post('/push', async (req, res) => {

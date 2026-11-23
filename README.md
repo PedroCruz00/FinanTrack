@@ -6,43 +6,71 @@ Aplicación web progresiva (PWA) de finanzas personales: registra ingresos y gas
 
 ## Puesta en marcha
 
-Requisitos: Node 20 o superior y MySQL 8 o superior (en macOS: `brew install mysql`).
+Requisitos: Node 20 o superior y una de estas dos opciones para la base de datos:
+
+- **Docker Desktop** (recomendado, igual en Windows, macOS y Linux): el proyecto trae un `docker-compose.yml` con MySQL 8.4 listo.
+- **MySQL 8 instalado en el equipo**: en Windows con el [instalador oficial](https://dev.mysql.com/downloads/installer/); en macOS con `brew install mysql`.
+
+Los comandos `npm run …` son los mismos en todos los sistemas. Cuando un paso cambia entre Windows (PowerShell) y macOS/Linux, aparecen los dos.
 
 ### 1. Instalar (solo la primera vez)
 
 ```bash
-brew services start mysql              # MySQL encendido
-npm run install:all                    # dependencias del servidor y del cliente
-cp server/.env.example server/.env     # archivo de configuración
+npm run install:all     # dependencias del servidor y del cliente
 ```
 
-### 2. Completar `server/.env`
+Copia el archivo de configuración:
+
+```powershell
+Copy-Item server/.env.example server/.env    # Windows (PowerShell)
+```
+
+```bash
+cp server/.env.example server/.env           # macOS / Linux
+```
+
+### 2. Encender MySQL
+
+**Con Docker** (abre Docker Desktop y espera a que diga *Engine running*):
+
+```bash
+npm run db:up       # crea y enciende el contenedor finantrack-mysql en el puerto 3306
+```
+
+Los datos quedan en un volumen de Docker y sobreviven a reinicios. Para apagarlo: `npm run db:down`.
+
+**Con MySQL instalado:** en Windows queda como servicio y arranca solo; en macOS, `brew services start mysql`.
+
+> Si ya tienes otro MySQL ocupando el puerto 3306, usa solo uno de los dos.
+
+### 3. Completar `server/.env`
 
 | Variable | Valor | Cómo obtenerlo |
 |---|---|---|
 | `PORT` | `4000` | Déjalo así. Si lo cambias, también el proxy en `client/vite.config.js`. |
 | `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` | MySQL local por defecto. |
 | `DB_USER` | `root` | El usuario con el que entras a MySQL. |
-| `DB_PASSWORD` | vacío o tu contraseña | Con Homebrew, `root` no trae contraseña. Compruébalo abajo. |
+| `DB_PASSWORD` | vacío o tu contraseña | Con Docker o Homebrew va vacío. Con el instalador de Windows, la que elegiste al instalar. |
 | `DB_NAME` | `finantrack` | Se crea sola con `npm run migrate`. |
-| `JWT_SECRET` | cadena aleatoria | `openssl rand -hex 32` |
+| `JWT_SECRET` | cadena aleatoria | Ver abajo. |
 | `UPLOAD_DIR` | `uploads` | Carpeta de las fotos de facturas (`server/uploads`). |
 | `CORS_ORIGIN` | `http://localhost:5173` | Dirección del cliente en desarrollo. |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | par de claves | `cd server && npx web-push generate-vapid-keys` |
 | `VAPID_SUBJECT` | `mailto:tu-correo` | Un correo de contacto para los servicios push. |
+| `APP_TIMEZONE` | `America/Bogota` | Zona horaria del resumen semanal (lunes 8:00), sin importar dónde corra el servidor. |
 
-**Contraseña de MySQL.** Si `mysql -uroot -e "select 1"` funciona, deja `DB_PASSWORD=` vacío. Si necesitas `mysql -uroot -p`, escribe esa contraseña.
-
-**JWT_SECRET** (firma las sesiones). Para generarlo y guardarlo directamente en el archivo:
+**JWT_SECRET** (firma las sesiones). Este comando funciona en cualquier sistema; pega el resultado en el archivo:
 
 ```bash
-sed -i '' "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" server/.env
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 **Claves VAPID** (notificaciones push):
 
 ```bash
-cd server && npx web-push generate-vapid-keys && cd ..
+cd server
+npx web-push generate-vapid-keys
+cd ..
 ```
 
 Copia `Public Key` en `VAPID_PUBLIC_KEY` y `Private Key` en `VAPID_PRIVATE_KEY`.
@@ -52,13 +80,13 @@ Copia `Public Key` en `VAPID_PUBLIC_KEY` y `Private Key` en `VAPID_PRIVATE_KEY`.
 
 > `server/.env` contiene secretos y está excluido de git: **nunca lo subas**. Cada integrante genera los suyos con estos pasos.
 
-### 3. Crear la base de datos
+### 4. Crear la base de datos
 
 ```bash
 npm run migrate     # → Base de datos "finantrack" lista (14 categorías).
 ```
 
-### 4. Correr la app
+### 5. Correr la app
 
 **Versión de producción** (recomendada para probar la PWA y presentar), en dos terminales:
 
@@ -67,6 +95,8 @@ npm run dev:server                   # Terminal 1 → API en http://localhost:40
 npm run build && npm run preview     # Terminal 2 → App en http://localhost:4173
 ```
 
+> En Windows PowerShell 5 no existe `&&`: ejecuta `npm run build` y después `npm run preview`.
+
 **Modo desarrollo** (se recarga al guardar cambios):
 
 ```bash
@@ -74,14 +104,29 @@ npm run dev:server     # Terminal 1
 npm run dev:client     # Terminal 2 → http://localhost:5173
 ```
 
-**Pruebas de la API** (con la API encendida): `npm test`
+Cada servidor se detiene con **Ctrl + C** en su terminal.
+
+### Pruebas
+
+```bash
+npm test              # API: integración contra el servidor encendido y MySQL
+npm run test:client   # Cliente: presupuestos y motor de sincronización (no necesita servidor)
+```
+
+> En Windows, si Vitest responde *failed to find the runner*, la terminal abrió la carpeta como `c:…` en minúscula. Abre una terminal nueva o entra con `cd C:…` (mayúscula) y vuelve a ejecutar.
 
 ### Comandos útiles
 
 ```bash
-pkill -f "src/index.js"; pkill -f "vite preview"            # detener servidores en segundo plano
-mysql -uroot -e "DROP DATABASE finantrack" && npm run migrate  # reiniciar la BD (borra todo)
-npm --prefix client run icons                                # regenerar íconos desde Brote
+npm --prefix client run icons      # regenerar íconos desde Brote
+```
+
+Reiniciar la base de datos (borra todo):
+
+```bash
+docker exec finantrack-mysql mysql -uroot -e "DROP DATABASE finantrack"   # con Docker
+mysql -uroot -p -e "DROP DATABASE finantrack"                              # con MySQL instalado
+npm run migrate
 ```
 
 ### Probar en el celular
@@ -89,7 +134,8 @@ npm --prefix client run icons                                # regenerar íconos
 El service worker, la instalación, las notificaciones y la cámara exigen HTTPS (o `localhost`). Usa un túnel:
 
 ```bash
-brew install cloudflared
+winget install --id Cloudflare.cloudflared    # Windows
+brew install cloudflared                      # macOS
 cloudflared tunnel --url http://localhost:4173
 ```
 
@@ -131,11 +177,13 @@ Todo usa detección de soporte: si un navegador no ofrece algo (por ejemplo, Saf
 server/
   src/schema.sql          Modelo relacional (users, categories, transactions, budgets, receipts, processed_operations)
   src/migrate.js          Crea la BD y carga las categorías
-  src/routes/auth.js      Registro / login (bcrypt + JWT)
+  src/routes/auth.js      Registro, login, cambio de contraseña y eliminación de cuenta (bcrypt + JWT)
   src/routes/sync.js      POST /sync/push (cola de operaciones) · GET /sync/pull (cambios desde una fecha)
   src/routes/receipts.js  Subida idempotente de facturas y descarga protegida
   src/routes/push.js      Web Push: clave VAPID, suscripción, prueba y resumen
-  src/push.js             Envío de push y programador del resumen semanal
+  src/push.js             Envío de push y programador del resumen semanal (zona APP_TIMEZONE)
+  src/uploads.js          Rutas de las facturas en disco y su borrado
+  src/middleware/         Sesión (JWT) y límite de intentos de contraseña
   test/api.test.js        Pruebas de integración
 client/
   src/lib/db.js           Esquema IndexedDB (Dexie), incluida la cola "outbox"
@@ -149,6 +197,7 @@ client/
   src/lib/budgets.js      Períodos, consumo, historial y alertas locales
   src/lib/image.js        Compresión de fotos y hash SHA-256
   src/pages/              Inicio, Movimientos, Formulario, Presupuestos, Reportes, Sincronización, Ajustes
+  src/lib/*.test.js       Pruebas (Vitest) de presupuestos y sincronización
   scripts/make-icons.js   Genera todos los íconos PNG a partir de Brote
 ```
 
@@ -174,7 +223,7 @@ client/
 | Sincronizar al abrir, al reconectar y manualmente | `startSyncEngine` (también cada minuto y al volver a la pestaña) |
 | Informes: ingresos vs. gastos, por categoría, comparación entre meses, top categorías, historial de presupuestos | `Reports.jsx` |
 | Exportación CSV | Botones en Reportes (compatible con Excel en español) |
-| Seguridad | bcrypt, JWT, aislamiento por usuario en cada consulta, validación con zod, verificación de tipo real de imagen, facturas servidas solo a su dueño, helmet |
+| Seguridad | bcrypt, JWT, límite de intentos en login y registro, aislamiento por usuario en cada consulta, validación con zod, verificación de tipo real de imagen, facturas servidas solo a su dueño, helmet |
 
 ## Flujo de sincronización
 

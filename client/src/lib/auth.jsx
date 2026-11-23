@@ -20,6 +20,14 @@ export function AuthProvider({ children }) {
     setUser(res.user);
   }
 
+  async function forgetDevice() {
+    navigator.clearAppBadge?.().catch(() => {});
+    await clearLocalData();
+    localStorage.removeItem(LAST_USER_KEY);
+    await session.clear();
+    setUser(null);
+  }
+
   /** Cierra sesión y borra los datos del dispositivo. Devuelve false si el usuario cancela. */
   async function logout() {
     const pending = await db.outbox.count();
@@ -33,12 +41,15 @@ export function AuthProvider({ children }) {
     }
     // Este dispositivo deja de recibir las notificaciones push de la cuenta.
     await disablePush().catch(() => {});
-    navigator.clearAppBadge?.().catch(() => {});
-    await clearLocalData();
-    localStorage.removeItem(LAST_USER_KEY);
-    await session.clear();
-    setUser(null);
+    await forgetDevice();
     return true;
+  }
+
+  /** Elimina la cuenta en el servidor y después los datos de este dispositivo. */
+  async function deleteAccount(password) {
+    await api('/auth/account', { method: 'DELETE', json: { password } });
+    await disablePush().catch(() => {});
+    await forgetDevice();
   }
 
   /** Sesión expirada: se pide iniciar sesión otra vez SIN borrar los datos pendientes. */
@@ -48,7 +59,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, authenticate, logout, reauthenticate }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, authenticate, logout, deleteAccount, reauthenticate }}>{children}</AuthContext.Provider>
   );
 }
 

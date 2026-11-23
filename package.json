@@ -2,12 +2,15 @@
   "name": "finantrack",
   "private": true,
   "scripts": {
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
     "install:all": "npm --prefix server install && npm --prefix client install",
     "migrate": "npm --prefix server run migrate",
     "dev:server": "npm --prefix server run dev",
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
     "preview": "npm --prefix client run preview",
-    "test": "npm --prefix server test"
+    "test": "npm --prefix server test",
+    "test:client": "npm --prefix client test"
   }
 }
